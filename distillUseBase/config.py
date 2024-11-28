@@ -1,12 +1,12 @@
 import torch
 
 # Paths
-DATA_PATH = "/home/stud/haroonm0/localdisk/FactCheck/Dataset/"
-WORKING_PATH = "/home/stud/haroonm0/localdisk/FactCheck/kaggle/working/"
+DATA_PATH = "FactCheck/dataset/"
+WORKING_PATH = "FactCheck/kaggle/working/"
 
 # Model configurations
 MODEL_NAME = "sentence-transformers/distiluse-base-multilingual-cased-v1"
-model_save_path = '/home/stud/haroonm0/localdisk/FactCheck/kaggle/working/minilm-finetuned'
+model_save_path = 'FactCheck/kaggle/working/minilm-finetuned'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Training configurations
