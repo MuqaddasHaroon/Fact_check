@@ -1,28 +1,23 @@
-from sklearn.metrics import classification_report, accuracy_score
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
-import pandas as pd
-from config import DEVICE, model_save_path, MODEL_NAME
-import torch
-from torch.utils.data import DataLoader
-from transformers import AutoTokenizer
-from sentence_transformers import SentenceTransformer, InputExample
-from config import MODEL_NAME, DEVICE, EPOCHS
-from utils import custom_collate_fn
-import pandas as pd
+
+import os
 import time
-
 import ast
-import numpy as np
 
+
+import numpy as np
+import pandas as pd
+from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader
+from torch.cuda.amp import autocast, GradScaler
 from transformers import AutoTokenizer
 from sentence_transformers import SentenceTransformer, InputExample
-from torch.cuda.amp import autocast, GradScaler
-from sklearn.metrics.pairwise import cosine_similarity
-import os
+
+
+from config import DEVICE, model_save_path, MODEL_NAME, EPOCHS
+from utils import custom_collate_fn
 
 def evaluate_model(working_path):
     model = SentenceTransformer(MODEL_NAME).to(DEVICE)
@@ -46,7 +41,7 @@ def evaluate_model_successK(WORKING_PATH):
     import logging
 
     # Setup logging
-    log_file = "/home/stud/haroonm0/localdisk/FactCheck/data_processing/distillUseBase/evaluation_log.txt"
+    log_file = "../data_processing/distillUseBase/evaluation_log.txt"
     logging.basicConfig(
         filename=log_file,
         level=logging.DEBUG,
@@ -57,7 +52,7 @@ def evaluate_model_successK(WORKING_PATH):
     logger.info("Starting evaluation...")
 
 
-    model_save_path = 'FactCheck/kaggle/working/minilm-finetuned'
+    model_save_path = '../kaggle/working/minilm-finetuned'
     model = SentenceTransformer(model_save_path)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -65,8 +60,8 @@ def evaluate_model_successK(WORKING_PATH):
     logger.info(f"Loaded model from {model_save_path} on device {device}")
 
 
-    test_data = pd.read_csv('FactCheck/kaggle/working/test_data.csv')
-    org_data = pd.read_csv('FactCheck/kaggle/working/train_data_with_negatives.csv')
+    test_data = pd.read_csv('../kaggle/working/test_data.csv')
+    org_data = pd.read_csv('../kaggle/working/train_data_with_negatives.csv')
 
   
     positive_test_data = test_data[test_data['label'] == 1]

@@ -120,7 +120,7 @@ def train_model(working_path):
                 break
 
     # Save the final model
-    model_save_path = 'FactCheck/kaggle/working/minilm-finetuned'
+    model_save_path = '../kaggle/working/minilm-finetuned'
     model.save(model_save_path)
     print(f"Training complete. Model saved to {model_save_path}")
     print("Model training complete.")

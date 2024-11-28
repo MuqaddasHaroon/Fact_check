@@ -1,15 +1,15 @@
 import torch
 
-# Paths
-DATA_PATH = "FactCheck/dataset/"
-WORKING_PATH = "FactCheck/kaggle/working/"
 
-# Model configurations
+DATA_PATH = "../dataset/"
+WORKING_PATH = "../kaggle/working/"
+
+
 MODEL_NAME = "sentence-transformers/distiluse-base-multilingual-cased-v1"
-model_save_path = 'FactCheck/kaggle/working/minilm-finetuned'
+model_save_path = '../kaggle/working/minilm-finetuned'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Training configurations
+
 BATCH_SIZE = 16
 LEARNING_RATE = 5e-5
 WEIGHT_DECAY = 0.2
