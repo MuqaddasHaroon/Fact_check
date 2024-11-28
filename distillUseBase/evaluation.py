@@ -57,7 +57,7 @@ def evaluate_model_successK(WORKING_PATH):
     logger.info("Starting evaluation...")
 
 
-    model_save_path = '/home/stud/haroonm0/localdisk/FactCheck/kaggle/working/minilm-finetuned'
+    model_save_path = 'FactCheck/kaggle/working/minilm-finetuned'
     model = SentenceTransformer(model_save_path)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -65,8 +65,8 @@ def evaluate_model_successK(WORKING_PATH):
     logger.info(f"Loaded model from {model_save_path} on device {device}")
 
 
-    test_data = pd.read_csv('/home/stud/haroonm0/localdisk/FactCheck/kaggle/working/test_data.csv')
-    org_data = pd.read_csv('/home/stud/haroonm0/localdisk/FactCheck/kaggle/working/train_data_with_negatives.csv')
+    test_data = pd.read_csv('FactCheck/kaggle/working/test_data.csv')
+    org_data = pd.read_csv('FactCheck/kaggle/working/train_data_with_negatives.csv')
 
   
     positive_test_data = test_data[test_data['label'] == 1]

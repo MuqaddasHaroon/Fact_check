@@ -112,7 +112,7 @@ def train_model(working_path):
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             epochs_without_improvement = 0
-            model.save('/home/stud/haroonm0/localdisk/FactCheck/kaggle/working/best_model')
+            model.save('FactCheck/kaggle/working/best_model')
         else:
             epochs_without_improvement += 1
             if epochs_without_improvement >= early_stopping_patience:
@@ -120,7 +120,7 @@ def train_model(working_path):
                 break
 
     # Save the final model
-    model_save_path = '/home/stud/haroonm0/localdisk/FactCheck/kaggle/working/minilm-finetuned'
+    model_save_path = 'FactCheck/kaggle/working/minilm-finetuned'
     model.save(model_save_path)
     print(f"Training complete. Model saved to {model_save_path}")
     print("Model training complete.")
