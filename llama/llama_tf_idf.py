@@ -34,9 +34,7 @@ def retrieve_claim(post, claims, tokenizer, model, device):
 
 
 def success_at_k_batch(posts, claims, ground_truths, k, tokenizer, model, device, batch_size=16):
-    """
-    Compute Success@K for LLaMA retrieval in batches.
-    """
+    
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -47,10 +45,10 @@ def success_at_k_batch(posts, claims, ground_truths, k, tokenizer, model, device
         batch_posts = posts[i:i + batch_size]
         batch_ground_truths = ground_truths[i:i + batch_size]
 
-        # Pre-filter claims for each post
+  
         batch_filtered_claims = [filter_top_k_claims(post, claims, k=k) for post in batch_posts]
 
-        # Create prompts for the batch
+
         batch_prompts = [
             f"Post: \"{post}\"\nHere are some claims:\n" +
             "\n".join([f"{j + 1}. \"{claim}\"" for j, claim in enumerate(filtered_claims)]) +
@@ -65,7 +63,7 @@ def success_at_k_batch(posts, claims, ground_truths, k, tokenizer, model, device
 
         responses = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
-        # Check Success@K
+    
         for response, ground_truth in zip(responses, batch_ground_truths):
             if ground_truth in response:
                 success_count += 1
@@ -74,9 +72,7 @@ def success_at_k_batch(posts, claims, ground_truths, k, tokenizer, model, device
 
 
 def evaluate_success_at_k(dataset, test_df, post_column, claim_column, k, tokenizer, model, device, batch_size=16):
-    """
-    Evaluate Success@K for the entire dataset.
-    """
+ 
     posts = test_df[post_column].tolist()
     claims = dataset[claim_column].tolist()
     ground_truths = test_df[claim_column].tolist()
@@ -85,9 +81,9 @@ def evaluate_success_at_k(dataset, test_df, post_column, claim_column, k, tokeni
 
 
 def main():
-    fact_checks = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/fact_checks.csv")
-    posts = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/posts.csv")
-    pairs = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/pairs.csv")
+    fact_checks = pd.read_csv("../dataset/fact_checks.csv")
+    posts = pd.read_csv("../dataset/posts.csv")
+    pairs = pd.read_csv("../dataset/pairs.csv")
 
     model_name = "meta-llama/Llama-3.1-8B"
     hf_token = "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"

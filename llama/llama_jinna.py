@@ -20,19 +20,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-# Initialize Jina Embeddings using SentenceTransformers
-embedding_model = SentenceTransformer('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
 
 
-
-# Load Jina Embeddings
-embedding_model = SentenceTransformer('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
-
-def encode_texts(texts):
-    """
-    Encode a list of texts using Jina Embeddings.
-    """
-    return embedding_model.encode(texts)
 
 from sentence_transformers import SentenceTransformer, util
 from sklearn.metrics.pairwise import cosine_similarity
@@ -56,25 +45,26 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-# Initialize Jina Embeddings using SentenceTransformers
 embedding_model = SentenceTransformer('jinaai/jina-embeddings-v2-base-en', trust_remote_code=True)
+
+def encode_texts(texts):
+   
+    return embedding_model.encode(texts)
 
 
 
 def precompute_claim_embeddings(claims):
   
     print("Precomputing claim embeddings...")
-    claim_embeddings = encode_texts(claims)  # Compute embeddings for all claims
+    claim_embeddings = encode_texts(claims) 
     print("Claim embeddings precomputed.")
     return claim_embeddings
 
 
 def filter_top_k_claims(post, claim_embeddings, claims, k=10):
-    """
-    Use Jina Embeddings to filter top-k relevant claims for a given post using precomputed embeddings.
-    """
+    
  
-    post_vector = encode_texts([post])[0]  # Single embedding for the post
+    post_vector = encode_texts([post])[0]  #Single embedding for the post
 
 
     similarities = util.cos_sim(post_vector, claim_embeddings).flatten()
@@ -121,9 +111,6 @@ def success_at_k_batch(posts, claims, claim_embeddings, ground_truths, k, tokeni
 
 
 def evaluate_success_at_k(dataset, test_df, post_column, claim_column, claim_embeddings, k, tokenizer, model, device, batch_size=4):
-    """
-    Evaluate Success@K for the entire dataset using precomputed claim embeddings.
-    """
     posts = test_df[post_column].tolist()
     claims = dataset[claim_column].tolist()
     ground_truths = test_df[claim_column].tolist()
@@ -133,9 +120,9 @@ def evaluate_success_at_k(dataset, test_df, post_column, claim_column, claim_emb
 
 def main():
 
-    fact_checks = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/fact_checks.csv")
-    posts = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/posts.csv")
-    pairs = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/pairs.csv")
+    fact_checks = pd.read_csv("../dataset/fact_checks.csv")
+    posts = pd.read_csv("../dataset/posts.csv")
+    pairs = pd.read_csv("../dataset/pairs.csv")
 
 
     preprocessor = TextPreprocessor()

@@ -13,9 +13,7 @@ from dataset_creation import split_data
 import numpy as np
 
 def compute_claim_embeddings(claims, tokenizer, model, device, save_path="claim_embeddings.npy"):
-    """
-    Compute and save embeddings for all claims using LLaMA.
-    """
+  
     print("Computing claim embeddings...")
     model.eval()  
     embeddings = []
@@ -27,10 +25,10 @@ def compute_claim_embeddings(claims, tokenizer, model, device, save_path="claim_
             claim_embedding = outputs.hidden_states[-1].mean(dim=1)  # Mean pooling of the last hidden state
             embeddings.append(claim_embedding.cpu().numpy())
 
-    # Stack all embeddings into a single array
+
     embeddings = np.vstack(embeddings)
 
-    # Save embeddings to a file
+
     np.save(save_path, embeddings)
     print(f"Claim embeddings saved to {save_path}")
 
@@ -38,10 +36,7 @@ def compute_claim_embeddings(claims, tokenizer, model, device, save_path="claim_
 
 
 def retrieve_top_k_claims(post, claim_embeddings, claims, tokenizer, model, device, k=10):
-    """
-    Retrieve top-k claims for a post using precomputed claim embeddings and LLaMA post embeddings.
-    """
-    # Compute embedding for the post
+
     model.eval()
     with torch.no_grad():
         inputs = tokenizer(post, return_tensors="pt", truncation=True, max_length=512).to(device)
@@ -49,25 +44,23 @@ def retrieve_top_k_claims(post, claim_embeddings, claims, tokenizer, model, devi
         post_embedding = outputs.hidden_states[-1].mean(dim=1)  # Mean pooling of the last hidden state
         post_embedding = post_embedding.cpu().numpy()  # Convert to numpy array
 
-    # Reshape post_embedding to ensure it's 2D (1, embedding_dim)
+
     post_embedding = post_embedding.reshape(1, -1)
 
-    # Reshape claim_embeddings to ensure it's 2D (num_claims, embedding_dim)
+  
     claim_embeddings = claim_embeddings.reshape(claim_embeddings.shape[0], -1)
 
-    # Compute cosine similarity between post embedding and claim embeddings
+  
     similarities = cosine_similarity(post_embedding, claim_embeddings).flatten()
 
-    # Get top-k indices
+
     top_k_indices = similarities.argsort()[-k:][::-1]
     return [claims[i] for i in top_k_indices], similarities[top_k_indices]
 
 
 
 def success_at_k_batch(posts, claim_embeddings, claims, ground_truths, tokenizer, model, device, k=10, batch_size=16):
-    """
-    Compute Success@K using precomputed claim embeddings.
-    """
+  
     success_count = 0
     total = len(posts)
 
@@ -84,9 +77,7 @@ def success_at_k_batch(posts, claim_embeddings, claims, ground_truths, tokenizer
 
 
 def evaluate_success_at_k(dataset, test_df, post_column, claim_column, claim_embeddings, tokenizer, model, device, k=10, batch_size=16):
-    """
-    Evaluate Success@K using precomputed claim embeddings.
-    """
+  
     posts = test_df[post_column].tolist()
     claims = dataset[claim_column].tolist()
     ground_truths = test_df[claim_column].tolist()
@@ -95,9 +86,9 @@ def evaluate_success_at_k(dataset, test_df, post_column, claim_column, claim_emb
 
 
 def main():
-    fact_checks = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/fact_checks.csv")
-    posts = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/posts.csv")
-    pairs = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/pairs.csv")
+    fact_checks = pd.read_csv("../dataset/fact_checks.csv")
+    posts = pd.read_csv("../dataset/posts.csv")
+    pairs = pd.read_csv("../dataset/pairs.csv")
 
     model_name = "meta-llama/Llama-3.1-8B"
     hf_token = "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"
@@ -184,7 +175,7 @@ def main():
         test_df,
         post_column='text_translated',
         claim_column='translated_claim',
-        claim_embeddings=claim_embeddings_trans,
+       claim_embeddings=claim_embeddings_trans,
         tokenizer=tokenizer,
         model=model,
         device=device,
