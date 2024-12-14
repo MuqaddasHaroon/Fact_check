@@ -8,10 +8,10 @@ from transformers import BitsAndBytesConfig, AutoModelForCausalLM, AutoTokenizer
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from datasets import Dataset
-from lamas.preprocess import TextPreprocessor, replace_text_with_ocr, split_text_column
-from lamas.merge import merge_data
-from lamas.dataset_creation import split_data
-from lamas.preprocess import *
+from preprocess import TextPreprocessor, replace_text_with_ocr, split_text_column
+from merge import merge_data
+from dataset_creation import split_data
+from preprocess import *
 from proccessclaims import *
 
 # Initialize logging
@@ -19,10 +19,10 @@ logging.basicConfig(level=logging.DEBUG)
 
 def pre_process():
     logging.debug("Starting data preprocessing.")
-    fact_checks = pd.read_csv("../dataset/fact_checks.csv")
-    posts = pd.read_csv("../dataset/posts.csv")
-    pairs = pd.read_csv("../dataset/pairs.csv")
 
+    fact_checks = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/fact_checks.csv")
+    posts = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/posts.csv")
+    pairs = pd.read_csv("/home/stud/haroonm0/localdisk/FactCheck/Dataset/pairs.csv")
     preprocessor = TextPreprocessor()
 
     if 'text' in posts.columns and 'ocr' in posts.columns:
@@ -213,3 +213,202 @@ if __name__ == "__main__":
         except Exception as e:
             logging.error(f"Error processing post {post_num}: {e}")
     
+
+#prompt 2
+""""
+import logging
+import os
+import pandas as pd
+import multiprocessing
+import re
+from tqdm import tqdm
+from transformers import BitsAndBytesConfig, AutoModelForCausalLM, AutoTokenizer
+import torch
+from torch.nn.utils.rnn import pad_sequence
+from datasets import Dataset
+from lamas.preprocess import TextPreprocessor, replace_text_with_ocr, split_text_column
+from lamas.merge import merge_data
+from lamas.dataset_creation import split_data
+from lamas.preprocess import *
+from proccessclaims import *
+from prompt import *
+
+# Initialize logging
+logging.basicConfig(level=logging.DEBUG)
+
+
+def create_dataset(posts, chunked_claims):
+    data = {"post": [], "claims": []}
+    assert len(chunked_claims) == 4, "The number of claim chunks must be exactly 4."
+
+    for post in posts:
+        for chunk in chunked_claims:
+            data["post"].append(post)
+            data["claims"].append(chunk)
+
+    return Dataset.from_dict(data)
+
+
+
+
+def process_with_multiprocessing(data_chunks, num_workers=4):
+    try:
+        if not isinstance(data_chunks, list) or not all(isinstance(chunk, list) for chunk in data_chunks):
+            raise ValueError("data_chunks must be a list of lists (chunks of examples).")
+        with multiprocessing.Pool(num_workers) as pool:
+            results = pool.map(process_single_chunk2, data_chunks)
+        return results
+    except Exception as e:
+        logging.error(f"Error in multiprocessing: {e}")
+        return []
+    
+def flatten_results(results):
+
+    flattened_posts = []
+    for post_results in results:
+        flattened_claims = [
+            claim
+            for group in post_results
+            for subgroup in group
+            for claim in subgroup
+            if isinstance(claim, dict) and 'claim' in claim and 'relevance' in claim
+        ]
+        flattened_posts.append(flattened_claims)
+    return flattened_posts
+
+
+def map_claims_to_posts(posts, raw_results):
+
+    post_results = {}
+    for post, result in zip(posts, raw_results):
+        post_results[post] = flatten_results(result)
+    return post_results
+
+def assign_missing_scores(claims):
+
+    descending_scores = list(reversed(range(1, len(claims) + 1)))
+    for claim, score in zip(claims, descending_scores):
+        if 'relevance' not in claim or claim['relevance'] is None:
+            claim['relevance'] = score
+    return claims
+
+def group_claims_by_post(results):
+
+    grouped_claims = {}
+
+    for post_index, result in enumerate(results):
+        grouped_claims[post_index] = []
+
+        for sublist in result:
+            for group in sublist:
+                if isinstance(group, list):
+                    # Process lists within the sublist
+                    for claim in group:
+                        if isinstance(claim, dict) and 'claim' in claim:
+                            grouped_claims[post_index].append(claim)
+                elif isinstance(group, dict) and 'claim' in group:
+                    # Process individual claims in the sublist
+                    grouped_claims[post_index].append(group)
+
+    return grouped_claims
+
+
+def map_posts_to_claims(posts, grouped_claims_by_post):
+
+    post_to_claims_mapping = {}
+
+    for index, post in enumerate(posts):
+        # Ensure index does not exceed grouped_claims_by_post length
+        if index < len(grouped_claims_by_post):
+            claims = grouped_claims_by_post[index]
+        else:
+            claims = []  # Default to empty if no claims are present for this index
+
+        post_to_claims_mapping[post] = claims
+
+    return post_to_claims_mapping
+
+
+
+if __name__ == "__main__":
+    import logging
+    import multiprocessing
+
+    # Setup logging
+    logging.basicConfig(level=logging.DEBUG)
+
+    # Handle multiprocessing start method
+    try:
+        multiprocessing.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass
+
+    # Preprocess data
+    posts, claims, post_to_truth = pre_process()
+    posts = posts[:500]  
+
+    # Divide claims into chunks
+    chunked_claims = create_fixed_chunks(claims, 4)
+
+    # Create dataset
+    dataset = create_dataset(posts, chunked_claims)
+
+    # Create data chunks for multiprocessing
+    data_chunks = [[entry] for entry in list(dataset)]
+    # Process data chunks
+    results = process_with_multiprocessing(data_chunks, num_workers=4)
+
+    # Flatten and group claims by posts
+    grouped_claims_by_post = [sum(post_claims, []) for post_claims in results]
+    post_to_claims = map_posts_to_claims(posts, grouped_claims_by_post)
+    print(f"post to claim are {post_to_claims}")
+
+
+
+
+    # Initialize success count
+    success = 0
+
+    # Iterate through posts and their associated claims
+    for post_num, (post, claims) in enumerate(post_to_claims.items(), start=1):
+        print(f"post and claim are {post} and claim {claims}")
+        try:
+            unique_claims = {}
+            claimList = []
+            for claim in claims:
+                claim_text = claim['claim']
+                relevance = claim['relevance']
+                # Add only if it's not already in the dictionary
+                if claim_text not in unique_claims:
+                    unique_claims[claim_text] = relevance
+            unique_claims_list = [{'claim': text, 'relevance': relevance} for text, relevance in unique_claims.items()]
+            unique_claims_list = sorted(unique_claims_list, key=lambda x: x['relevance'], reverse=True)
+            #for claim in unique_claims_list:
+                #claimList.append(claim['claim'])
+            #print(f"list is {len(claimList)}")
+            
+            #top_claims = process_single_chunk3(post, claimList)
+            #if not top_claims:
+            top_claims = unique_claims_list[:10]
+
+            # Step 3: Retrieve relevant ground truth claims for the post
+            relevant_truths = post_to_truth.get(post, [])
+
+            # Step 4: Evaluate Success@K for each ground truth
+            for truth in relevant_truths:
+                success += success_k(top_claims, truth)
+
+                # Log progress after processing each truth
+                with open("post_success_log.txt", "a", encoding="utf-8") as log_file:
+                    log_file.write(f"Post {post_num}: Success so far: {success}\n")
+
+            # Log progress in console
+            logging.info(f"Post {post_num}: Success so far: {success}")
+
+        except Exception as e:
+            # Log any errors during processing
+            logging.error(f"Error processing post {post_num}: {e}")
+
+    # Final Success Count
+    logging.info(f"Final Success Count: {success}")
+""""
