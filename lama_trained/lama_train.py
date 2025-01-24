@@ -121,14 +121,16 @@ def model_init():
     return model, tokenizer
 
 if __name__ == "__main__":
-    fact_checks = pd.read_csv('/home/stud/haroonm0/localdisk/Fact_check/lama_trained/real_work/dataset/fact_checks.csv')
-    posts = pd.read_csv('/home/stud/haroonm0/localdisk/Fact_check/lama_trained/real_work/dataset/posts.csv')
-    pairs = pd.read_csv('/home/stud/haroonm0/localdisk/Fact_check/lama_trained/real_work/dataset/pairs.csv')
-
+    fact_checks = pd.read_csv('/home/stud/haroonm0/localdisk/Fact_check/dataset/fact_checks.csv')
+    posts = pd.read_csv('/home/stud/haroonm0/localdisk/Fact_check/dataset/posts.csv')
+    pairs = pd.read_csv('/home/stud/haroonm0/localdisk/Fact_check/dataset/pairs.csv')
+    fact_checks = fact_checks.sample(frac=0.001)
+    posts = posts.sample(frac=0.001)
+    pairs = pairs.sample(frac=0.001)
     model, tokenizer = model_init()
-
+    text_type = 'text_original'
     EOS_TOKEN = tokenizer.eos_token  # Must add EOS_TOKEN
-    train_df, test_df, val,  mergedata = pre_process(posts, fact_checks, pairs)
+    train_df, test_df, val,  mergedata = pre_process(posts, fact_checks, pairs, text_type)
 
 
     train_pairs = create_pos_neg_pairs(train_df, mergedata)
@@ -139,6 +141,7 @@ if __name__ == "__main__":
     train_dataset2 = train_dataset.shuffle(seed=42)
 
     train_data = train_dataset2.map(formatting_prompts_func)
+    
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,

@@ -66,6 +66,63 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import os
 import pandas as pd
+import spacy
+import re
+import emoji
+from transformers import pipeline
+
+
+def get_primary_language(lang_conf):
+    if lang_conf and isinstance(lang_conf, list):
+        # Sort by confidence descending and return the language code with highest confidence
+        return sorted(lang_conf, key=lambda x: x[1], reverse=True)[0][0]
+    return None
+
+
+def clean_text(text, lang):
+    try:
+        # Load the spaCy model for the specified language
+        nlp = spacy.load(f"{lang}_core_news_sm")
+    except OSError:
+        # If the specific language model isn't available, check for supported blank models
+        try:
+            nlp = spacy.blank(lang)  # Try loading a blank model
+        except Exception as e:
+            # Handle unsupported languages
+            return f"Error: Unsupported language '{lang}'. Details: {str(e)}"
+    
+    # Process the text
+    doc = nlp(text)
+    return " ".join([token.text for token in doc])
+def clean_with_eng(text, lang="es"):
+    nlp = spacy.load(f"{lang}_core_news_sm")  # Load spaCy model for the given language
+    doc = nlp(text)
+
+    # Tokenize and remove unwanted elements
+    tokens = [token.text for token in doc if not token.is_punct and not token.is_space]
+
+    # Remove emojis
+    text = emoji.replace_emoji(" ".join(tokens), replace='')
+
+    # Remove extra whitespaces
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+
+def summarize_column(df, column_name):
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    summaries = []
+    
+    for text in df[column_name]:
+        if len(text) < 50:
+            return text
+        else:
+            summary = summarizer(text, max_length=80, min_length=50, do_sample=False)
+            summaries.append(summary[0]["summary_text"])
+
+    
+    return pd.Series(summaries)
+
 
 def append_ocr_to_text(posts):
     """
@@ -73,40 +130,40 @@ def append_ocr_to_text(posts):
     only if they haven't been appended before.
     """
     for index, row in posts.iterrows():
-        # Get and process `ocr_original`
+
         ocr_original = row.get("ocr_original", None)
         if ocr_original is not None:
-            ocr_original = str(ocr_original).strip()  # Ensure it's a string and strip whitespace
+            ocr_original = str(ocr_original).strip() 
         else:
             ocr_original = ""
 
         text_original = row.get("text_original", None)
         if text_original is not None:
-            text_original = str(text_original).strip()  # Ensure it's a string and strip whitespace
+            text_original = str(text_original).strip()  
         else:
             text_original = ""
 
-        # Append `ocr_original` to `text_original` if not already appended
+    
         if pd.notna(ocr_original) and ocr_original != "" and ocr_original not in text_original:
             if pd.isna(text_original) or text_original == "":
                 posts.at[index, "text_original"] = ocr_original
             else:
                 posts.at[index, "text_original"] += f" {ocr_original}"
 
-        # Get and process `ocr_translated`
+
         ocr_translated = row.get("ocr_translated", None)
         if ocr_translated is not None:
-            ocr_translated = str(ocr_translated).strip()  # Ensure it's a string and strip whitespace
+            ocr_translated = str(ocr_translated).strip() 
         else:
             ocr_translated = ""
 
         text_translated = row.get("text_translated", None)
         if text_translated is not None:
-            text_translated = str(text_translated).strip()  # Ensure it's a string and strip whitespace
+            text_translated = str(text_translated).strip()  
         else:
             text_translated = ""
 
-        # Append `ocr_translated` to `text_translated` if not already appended
+   
         if pd.notna(ocr_translated) and ocr_translated != "" and ocr_translated not in text_translated:
             if pd.isna(text_translated) or text_translated == "":
                 posts.at[index, "text_translated"] = ocr_translated
@@ -114,6 +171,12 @@ def append_ocr_to_text(posts):
                 posts.at[index, "text_translated"] += f" {ocr_translated}"
     
     return posts
+
+def replace_short_text(row):
+    if isinstance(row['text_original'], str) and len(row['text_original'].split()) < 5:
+        return row['ocr_original'] if isinstance(row['ocr_original'], str) else row['text_original']
+    return row['text_original']
+
 
 def append_claim_to_text(fact_check):
     """
@@ -272,40 +335,6 @@ def replace_text_with_ocr(df, text_column='text', ocr_column='ocr'):
     return df
 
 
-class TextPreprocessor:
-    @staticmethod
-    def remove_urls(text):
-        if not isinstance(text, str):
-            return text
-        return re.sub(r'http\S+', '', text)
-
-    @staticmethod
-    def remove_emojis(text):
-        if not isinstance(text, str):
-            return text
-        emoji_pattern = re.compile(
-            "["
-            u"\U0001F600-\U0001F64F"  # emoticons
-            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-            u"\U0001F680-\U0001F6FF"  # transport & map symbols
-            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-            "]+",
-            flags=re.UNICODE,
-        )
-        return emoji_pattern.sub(r'', text)
-
-    @staticmethod
-    def replace_whitespaces(text):
-        if not isinstance(text, str):
-            return text
-        return re.sub(r'\s+', ' ', text).strip()
-
-    def preprocess(self, text):
-        #text = self.remove_urls(text)
-        text = self.remove_emojis(text)
-        text = self.replace_whitespaces(text)
-        return text
-
 
 
 def safe_literal_eval(val):
@@ -343,4 +372,5 @@ def split_text_column(row, row_name):
     except Exception as e:
         print(f"Error processing row: {row[row_name]} -> {e}")
     return pd.Series([None, None, None, None])
+
 
